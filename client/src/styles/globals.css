@@ -1,0 +1,196 @@
+/* ─── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+  --bg-base: #ffffff;
+  --bg-surface: #fafaf7;
+  --bg-elevated: #fff2ea;
+  --bg-subtle: #fff7f2;
+  --border-default: #ede7e1;
+  --border-strong: #18130e;
+  --text-primary: #18130e;
+  --text-secondary: #6b5e54;
+  --text-tertiary: #a89c94;
+  --accent-orange: #f07830;
+  --accent-orange-dim: #fddec9;
+  --accent-orange-glow: rgba(240, 120, 48, 0.15);
+  --accent-amber: #f5a070;
+  --green: #16a34a;
+  --green-dim: #dcfce7;
+  --red: #dc2626;
+  --red-dim: #fee2e2;
+  --blue: #2563eb;
+  --malachi-color: #f07830;
+  --daniel-color: #2563eb;
+
+  --card-shadow: 6px 6px 0 #18130e;
+  --card-shadow-hover: 8px 8px 0 #18130e;
+  --card-radius: 20px;
+  --sidebar-width: 220px;
+}
+
+/* ─── Base Reset ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-surface); }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+/* ─── Danichi Card Style ─────────────────────────────────────────────────── */
+.dc-card {
+  background: #ffffff;
+  border: 3px solid #18130e;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.dc-card.dc-card-hover:hover,
+.dc-card-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--card-shadow-hover);
+}
+.dc-card-orange {
+  background: var(--accent-orange);
+  border: 3px solid #18130e;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  color: #ffffff;
+}
+.dc-card-surface {
+  background: var(--bg-surface);
+  border: 3px solid #18130e;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+/* ─── Dashboard Orb ──────────────────────────────────────────────────────── */
+.hero-card-orb {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240, 120, 48, 0.18) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse-orb 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes pulse-orb {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+  50% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+}
+
+/* ─── Typography ─────────────────────────────────────────────────────────── */
+.font-display {
+  font-family: 'Outfit', ui-sans-serif;
+  font-weight: 700;
+}
+.font-display-serif {
+  font-family: 'DM Serif Display', Georgia, serif;
+}
+.font-data {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.label-caps {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-orange);
+}
+.section-label::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 3px;
+  background: var(--accent-orange);
+  border-radius: 2px;
+}
+
+/* ─── Focus Ring ─────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent-orange);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Nav Card ───────────────────────────────────────────────────────────── */
+.nav-card {
+  background: #ffffff;
+  border: 3px solid #18130e;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 24px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+.nav-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* ─── Orange Icon Box ────────────────────────────────────────────────────── */
+.icon-box {
+  width: 44px;
+  height: 44px;
+  background: var(--bg-elevated);
+  border: 2px solid #18130e;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-orange);
+  flex-shrink: 0;
+}
+.icon-box-orange {
+  background: var(--accent-orange);
+  border: 2px solid #18130e;
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
