@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
-import { Sidebar } from './components/layout/Sidebar';
+import { TopNav } from './components/layout/TopNav';
 import { ToastProvider } from './components/ui/Toast';
 
 import { Dashboard } from './pages/Dashboard';
@@ -25,14 +25,13 @@ const queryClient = new QueryClient({
 
 const AppRoutes: React.FC = () => {
   const location = useLocation();
-
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/transactions/new" element={
-          <PageWrapper title="New Transaction">
+          <PageWrapper title="Log a Payment">
             <NewTransactionForm />
           </PageWrapper>
         } />
@@ -53,12 +52,10 @@ const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
     <ToastProvider>
       <BrowserRouter>
-        <div className="flex min-h-screen bg-[var(--bg-base)]">
-          <Sidebar />
-          <main className="flex-1 ml-[220px] p-8 bg-[var(--bg-base)]">
-            <div className="max-w-content mx-auto">
-              <AppRoutes />
-            </div>
+        <div className="min-h-screen bg-[var(--bg-base)]">
+          <TopNav />
+          <main className="max-w-6xl mx-auto px-6 py-10">
+            <AppRoutes />
           </main>
         </div>
       </BrowserRouter>

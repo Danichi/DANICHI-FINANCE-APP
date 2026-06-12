@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { Target, Plus } from 'lucide-react';
+import { Target, Plus, Check, Clock, Archive } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { PageWrapper } from '../components/layout/PageWrapper';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -11,6 +9,27 @@ import { useGoals, useGoalProgress, useCreateGoal, useDeleteGoal } from '../lib/
 import { formatCAD, formatDate } from '../lib/formatters';
 import { useToast } from '../components/ui/Toast';
 import type { GoalType } from '../types';
+
+const STATUS_ICONS: Record<string, React.ReactNode> = {
+  active: <Clock size={14} />,
+  completed: <Check size={14} />,
+  archived: <Archive size={14} />,
+};
+
+const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  active: { bg: 'rgba(240,120,48,0.12)', text: '#F07830', border: '#F07830' },
+  completed: { bg: 'rgba(22,163,74,0.1)', text: '#16a34a', border: '#16a34a' },
+  missed: { bg: 'rgba(220,38,38,0.1)', text: '#dc2626', border: '#dc2626' },
+  archived: { bg: 'rgba(107,94,84,0.1)', text: '#6b5e54', border: '#6b5e54' },
+};
+
+const GOAL_TYPE_LABELS: Record<string, string> = {
+  monthly_revenue: 'Monthly Revenue',
+  quarterly_revenue: 'Quarterly Revenue',
+  malachi_earnings: 'Malachi Earnings',
+  daniel_earnings: 'Daniel Earnings',
+  custom: 'Custom',
+};
 
 const GoalCard: React.FC<{ goalId: string }> = ({ goalId }) => {
   const { data: goals } = useGoals();
@@ -20,88 +39,172 @@ const GoalCard: React.FC<{ goalId: string }> = ({ goalId }) => {
   const { toast } = useToast();
 
   if (!goal) return null;
-  const pct = progress?.percentage ?? 0;
+
+  const pct = Math.min(100, progress?.percentage ?? 0);
   const isAutoCalc = ['monthly_revenue', 'malachi_earnings', 'daniel_earnings', 'quarterly_revenue'].includes(goal.type);
   const current = isAutoCalc ? (progress?.currentAmount ?? 0) : goal.currentAmount;
 
-  const statusColors: Record<string, any> = { active: 'orange', completed: 'green', missed: 'red', archived: 'default' };
   const now = new Date();
   const end = new Date(goal.periodEnd);
   const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  const statusStyle = STATUS_COLORS[goal.status] ?? STATUS_COLORS.archived;
 
   return (
-    <Card>
-      <div className="flex items-start justify-between mb-3">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-card border-[3px] border-[#18130e] bg-white shadow-card p-6"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-5">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge color={statusColors[goal.status]}>{goal.status}</Badge>
-            <Badge color="default">{goal.type.replace(/_/g, ' ')}</Badge>
+          <div className="flex items-center gap-2 mb-2">
+            <span
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-pill"
+              style={{ background: statusStyle.bg, color: statusStyle.text, border: `1.5px solid ${statusStyle.border}` }}
+            >
+              {STATUS_ICONS[goal.status]}
+              {goal.status}
+            </span>
+            <span className="text-xs font-semibold text-[var(--text-tertiary)] bg-[var(--bg-surface)] border-[1.5px] border-[var(--border-default)] px-2.5 py-1 rounded-pill">
+              {GOAL_TYPE_LABELS[goal.type] ?? goal.type}
+            </span>
           </div>
-          <h3 className="text-base font-medium text-[var(--text-primary)] mt-1">{goal.name}</h3>
-          {goal.description && <p className="text-xs text-[var(--text-secondary)] mt-0.5">{goal.description}</p>}
-        </div>
-        <div className="text-right ml-4 flex-shrink-0">
-          <p className="font-mono text-2xl font-bold text-[var(--text-primary)]">{pct.toFixed(0)}%</p>
-          {daysLeft > 0 && goal.status === 'active' && (
-            <p className="text-xs text-[var(--text-tertiary)]">{daysLeft}d left</p>
+          <h3 className="text-xl font-bold text-[var(--text-primary)] leading-tight">{goal.name}</h3>
+          {goal.description && (
+            <p className="text-sm text-[var(--text-secondary)] mt-1">{goal.description}</p>
           )}
         </div>
+        <div className="text-right ml-6 flex-shrink-0">
+          <p className="font-mono text-4xl font-bold text-[var(--accent-orange)] leading-none">{pct.toFixed(0)}%</p>
+          <p className="text-xs text-[var(--text-tertiary)] font-medium mt-1">complete</p>
+        </div>
       </div>
-      <ProgressBar value={current} max={goal.targetAmount} size="md" color={pct >= 100 ? 'green' : 'orange'} className="mb-2" />
-      <div className="flex justify-between text-xs">
-        <span className="font-mono text-[var(--text-secondary)]">{formatCAD(current)}</span>
-        <span className="font-mono text-[var(--text-tertiary)]">target: {formatCAD(goal.targetAmount)}</span>
+
+      {/* Progress bar */}
+      <ProgressBar value={current} max={goal.targetAmount} size="lg" color={pct >= 100 ? 'green' : 'orange'} />
+
+      {/* Numbers */}
+      <div className="flex justify-between mt-3 mb-5">
+        <span className="font-mono font-semibold text-[var(--text-primary)]">{formatCAD(current)}</span>
+        <span className="font-mono text-[var(--text-secondary)]">Target: {formatCAD(goal.targetAmount)}</span>
       </div>
-      <div className="flex justify-between mt-3 text-xs text-[var(--text-tertiary)]">
-        <span>{formatDate(goal.periodStart)} — {formatDate(goal.periodEnd)}</span>
-        <button onClick={() => deleteGoal(goalId).catch(() => toast('Error', 'error'))} className="text-[var(--text-tertiary)] hover:text-[var(--red)] transition-colors">Delete</button>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-4 border-t-[2px] border-[var(--border-default)]">
+        <div>
+          <p className="text-xs text-[var(--text-tertiary)] font-medium">
+            {formatDate(goal.periodStart)} — {formatDate(goal.periodEnd)}
+          </p>
+          {goal.status === 'active' && daysLeft > 0 && (
+            <p className="text-xs font-bold text-[var(--accent-orange)] mt-0.5">{daysLeft} days remaining</p>
+          )}
+        </div>
+        <button
+          onClick={() => deleteGoal(goalId).catch(() => toast('Error deleting goal', 'error'))}
+          className="text-xs font-semibold text-[var(--text-tertiary)] hover:text-red-600 transition-colors"
+        >
+          Remove
+        </button>
       </div>
-    </Card>
+    </motion.div>
   );
 };
 
 export const Goals: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', type: 'monthly_revenue' as GoalType, targetAmount: '', periodStart: new Date().toISOString().slice(0, 10), periodEnd: '', description: '' });
+  const [form, setForm] = useState({
+    name: '', type: 'monthly_revenue' as GoalType,
+    targetAmount: '',
+    periodStart: new Date().toISOString().slice(0, 10),
+    periodEnd: '', description: '',
+  });
   const { data: goals } = useGoals();
   const { mutateAsync: createGoal, isPending } = useCreateGoal();
   const { toast } = useToast();
+
+  const active = goals?.filter(g => g.status === 'active') ?? [];
+  const done = goals?.filter(g => g.status !== 'active') ?? [];
 
   const handleAdd = async () => {
     try {
       await createGoal({ ...form, targetAmount: parseFloat(form.targetAmount) });
       setShowAdd(false);
-      toast('Goal created');
+      setForm({ name: '', type: 'monthly_revenue', targetAmount: '', periodStart: new Date().toISOString().slice(0, 10), periodEnd: '', description: '' });
+      toast('Goal created!');
     } catch { toast('Failed to create goal', 'error'); }
   };
 
   return (
-    <PageWrapper
-      title="Goals"
-      action={<Button size="sm" onClick={() => setShowAdd(true)}><Plus size={14} /> New Goal</Button>}
-    >
+    <PageWrapper>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-10">
+        <div>
+          <p className="section-label mb-1">Revenue Goals</p>
+          <h1 className="font-display text-3xl font-bold text-[var(--text-primary)]">Goals</h1>
+        </div>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-pill transition-all hover:-translate-x-px hover:-translate-y-px"
+          style={{ background: 'var(--accent-orange)', border: '2px solid #18130e', boxShadow: '3px 3px 0 #18130e' }}
+        >
+          <Plus size={14} /> New Goal
+        </button>
+      </div>
+
       {goals?.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-16">
-          <Target size={48} className="text-[var(--text-tertiary)]" />
-          <div className="text-center">
-            <p className="text-sm font-medium text-[var(--text-secondary)]">No goals set</p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">Set a revenue or earnings goal to track your progress</p>
+        <div className="rounded-card border-[3px] border-[#18130e] bg-white shadow-card p-16 text-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--bg-elevated)', border: '2px solid #18130e' }}>
+            <Target size={24} className="text-[var(--accent-orange)]" />
           </div>
-          <Button onClick={() => setShowAdd(true)}>Set First Goal</Button>
+          <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Set your first goal</h2>
+          <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-sm mx-auto">
+            Goals help you and Malachi stay motivated and track your progress toward revenue milestones.
+          </p>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white rounded-pill hover:-translate-x-px hover:-translate-y-px transition-all"
+            style={{ background: 'var(--accent-orange)', border: '2px solid #18130e', boxShadow: '3px 3px 0 #18130e' }}
+          >
+            <Plus size={14} /> Create First Goal
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
-          {goals?.map(g => <GoalCard key={g.id} goalId={g.id} />)}
-        </div>
+        <>
+          {active.length > 0 && (
+            <div className="mb-10">
+              <h2 className="font-display text-xl font-bold text-[var(--text-primary)] mb-5">Active Goals</h2>
+              <div className="flex flex-col gap-5">
+                {active.map(g => <GoalCard key={g.id} goalId={g.id} />)}
+              </div>
+            </div>
+          )}
+          {done.length > 0 && (
+            <div>
+              <h2 className="font-display text-xl font-bold text-[var(--text-primary)] mb-5">Past Goals</h2>
+              <div className="flex flex-col gap-4">
+                {done.map(g => <GoalCard key={g.id} goalId={g.id} />)}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="New Goal" width="md">
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Create a Goal" width="md">
         <div className="p-6 flex flex-col gap-4">
-          <Input label="Goal Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Monthly Revenue Goal — July" />
+          <Input
+            label="Goal Name"
+            value={form.name}
+            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            placeholder="e.g. Hit $20k in July"
+          />
           <div className="flex flex-col gap-1.5">
-            <label className="label-caps">Type</label>
-            <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as GoalType }))}
-              className="bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-md text-sm text-[var(--text-primary)] px-3 py-2.5 focus:border-[var(--accent-orange)] focus:outline-none">
+            <label className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Type</label>
+            <select
+              value={form.type}
+              onChange={e => setForm(f => ({ ...f, type: e.target.value as GoalType }))}
+              className="bg-white border-[2px] border-[#18130e] rounded-xl text-sm font-medium text-[var(--text-primary)] px-3 py-2.5 focus:border-[var(--accent-orange)] focus:outline-none"
+            >
               <option value="monthly_revenue">Monthly Revenue</option>
               <option value="quarterly_revenue">Quarterly Revenue</option>
               <option value="malachi_earnings">Malachi Earnings</option>
@@ -109,15 +212,40 @@ export const Goals: React.FC = () => {
               <option value="custom">Custom</option>
             </select>
           </div>
-          <Input label="Target Amount" type="number" prefix="CA$" value={form.targetAmount} onChange={e => setForm(f => ({ ...f, targetAmount: e.target.value }))} />
+          <Input
+            label="Target Amount"
+            type="number"
+            prefix="CA$"
+            value={form.targetAmount}
+            onChange={e => setForm(f => ({ ...f, targetAmount: e.target.value }))}
+            placeholder="20000"
+          />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Start Date" type="date" value={form.periodStart} onChange={e => setForm(f => ({ ...f, periodStart: e.target.value }))} />
             <Input label="End Date" type="date" value={form.periodEnd} onChange={e => setForm(f => ({ ...f, periodEnd: e.target.value }))} />
           </div>
-          <Input label="Description (optional)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional notes" />
+          <Input
+            label="Notes (optional)"
+            value={form.description}
+            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            placeholder="Any extra context…"
+          />
           <div className="flex gap-3 pt-2">
-            <Button variant="secondary" className="flex-1" onClick={() => setShowAdd(false)}>Cancel</Button>
-            <Button className="flex-1" loading={isPending} onClick={handleAdd} disabled={!form.name || !form.targetAmount || !form.periodEnd}>Create Goal</Button>
+            <button
+              onClick={() => setShowAdd(false)}
+              className="flex-1 py-2.5 text-sm font-semibold rounded-pill transition-all"
+              style={{ border: '2px solid #18130e', boxShadow: '3px 3px 0 #18130e', background: '#fff' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAdd}
+              disabled={isPending || !form.name || !form.targetAmount || !form.periodEnd}
+              className="flex-1 py-2.5 text-sm font-bold text-white rounded-pill transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:-translate-x-px hover:-translate-y-px"
+              style={{ background: 'var(--accent-orange)', border: '2px solid #18130e', boxShadow: '3px 3px 0 #18130e' }}
+            >
+              {isPending ? 'Creating…' : 'Create Goal'}
+            </button>
           </div>
         </div>
       </Modal>
