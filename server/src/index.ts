@@ -14,7 +14,10 @@ const PORT = process.env.PORT || 3001;
 // Init DB on startup
 initDb();
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'] }));
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:4173'];
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.use('/api/transactions', transactionRoutes);
