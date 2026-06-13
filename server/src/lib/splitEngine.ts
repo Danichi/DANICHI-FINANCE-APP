@@ -1,6 +1,18 @@
 type Assignment = 'malachi' | 'daniel' | 'split';
 type WorkSplitMode = 'percentage' | 'hourly';
 
+export interface SplitRatios {
+  businessReservePct: number;
+  clientMgmtPct: number;
+  salesCommissionPct: number;
+}
+
+export const DEFAULT_RATIOS: SplitRatios = {
+  businessReservePct: 10,
+  clientMgmtPct: 10,
+  salesCommissionPct: 20,
+};
+
 export interface SplitInput {
   grossAmount: number;
   expenseDeduction?: number;
@@ -11,6 +23,7 @@ export interface SplitInput {
   danielWorkPercentage?: number;
   malachiHours?: number;
   danielHours?: number;
+  ratios?: Partial<SplitRatios>;
 }
 
 export interface SplitResult {
@@ -49,10 +62,16 @@ export function calculateSplit(input: SplitInput): SplitResult {
   const { grossAmount, expenseDeduction = 0, clientManagerAssignment, salesCommissionAssignment,
     workSplitMode, malachiWorkPercentage, danielWorkPercentage, malachiHours, danielHours } = input;
 
+  const ratios: SplitRatios = {
+    businessReservePct: input.ratios?.businessReservePct ?? DEFAULT_RATIOS.businessReservePct,
+    clientMgmtPct: input.ratios?.clientMgmtPct ?? DEFAULT_RATIOS.clientMgmtPct,
+    salesCommissionPct: input.ratios?.salesCommissionPct ?? DEFAULT_RATIOS.salesCommissionPct,
+  };
+
   const netAmount = round2(grossAmount - expenseDeduction);
-  const businessProfitReserve = round2(netAmount * 0.1);
-  const clientManagementFee = round2(netAmount * 0.1);
-  const salesCommission = round2(netAmount * 0.2);
+  const businessProfitReserve = round2(netAmount * (ratios.businessReservePct / 100));
+  const clientManagementFee = round2(netAmount * (ratios.clientMgmtPct / 100));
+  const salesCommission = round2(netAmount * (ratios.salesCommissionPct / 100));
   const workPool = round2(netAmount - businessProfitReserve - clientManagementFee - salesCommission);
 
   const { toMalachi: clientManagementToMalachi, toDaniel: clientManagementToDaniel } =
@@ -81,7 +100,7 @@ export function calculateSplit(input: SplitInput): SplitResult {
 
   const explanation = buildExplanation(input, { netAmount, businessProfitReserve, clientManagementToMalachi,
     clientManagementToDaniel, salesCommissionToMalachi, salesCommissionToDaniel, workPool, mPct, dPct,
-    malachiWorkPayout, danielWorkPayout, malachiTotalPayout, danielTotalPayout, businessTotalRetained });
+    malachiWorkPayout, danielWorkPayout, malachiTotalPayout, danielTotalPayout, businessTotalRetained, ratios });
 
   return { grossAmount, netAmount, expenseDeduction, businessProfitReserve, clientManagementFee,
     clientManagementToMalachi, clientManagementToDaniel, salesCommission, salesCommissionToMalachi,
@@ -96,26 +115,28 @@ function fmt(n: number) {
 
 function buildExplanation(input: SplitInput, r: any): string {
   const { grossAmount, expenseDeduction = 0, clientManagerAssignment, salesCommissionAssignment, workSplitMode, malachiHours, danielHours } = input;
+  const ratios: SplitRatios = r.ratios ?? DEFAULT_RATIOS;
   const parts: string[] = [];
   const baseAmt = expenseDeduction > 0
     ? `After deducting ${fmt(expenseDeduction)} in expenses, the net billable amount of ${fmt(r.netAmount)} was split as follows:`
     : `This ${fmt(grossAmount)} payment was split as follows:`;
   parts.push(baseAmt);
-  parts.push(`${fmt(r.businessProfitReserve)} went to the Business Profit Reserve.`);
+  parts.push(`${fmt(r.businessProfitReserve)} (${ratios.businessReservePct}%) went to the Business Profit Reserve.`);
   if (clientManagerAssignment === 'split') {
-    parts.push(`Client management fees were split equally (${fmt(r.clientManagementToMalachi)} each).`);
+    parts.push(`${ratios.clientMgmtPct}% in client management fees were split equally (${fmt(r.clientManagementToMalachi)} each).`);
   } else {
-    parts.push(`${fmt(r.clientManagementToMalachi + r.clientManagementToDaniel)} went to ${clientManagerAssignment === 'malachi' ? 'Malachi' : 'Daniel'} for managing the client relationship.`);
+    parts.push(`${fmt(r.clientManagementToMalachi + r.clientManagementToDaniel)} (${ratios.clientMgmtPct}%) went to ${clientManagerAssignment === 'malachi' ? 'Malachi' : 'Daniel'} for managing the client relationship.`);
   }
   if (salesCommissionAssignment === 'split') {
-    parts.push(`Sales commission was split equally (${fmt(r.salesCommissionToMalachi)} each).`);
+    parts.push(`${ratios.salesCommissionPct}% in sales commission was split equally (${fmt(r.salesCommissionToMalachi)} each).`);
   } else {
-    parts.push(`${fmt(r.salesCommissionToMalachi + r.salesCommissionToDaniel)} went to ${salesCommissionAssignment === 'malachi' ? 'Malachi' : 'Daniel'} as sales commission.`);
+    parts.push(`${fmt(r.salesCommissionToMalachi + r.salesCommissionToDaniel)} (${ratios.salesCommissionPct}%) went to ${salesCommissionAssignment === 'malachi' ? 'Malachi' : 'Daniel'} as sales commission.`);
   }
+  const workPct = 100 - ratios.businessReservePct - ratios.clientMgmtPct - ratios.salesCommissionPct;
   const workBasis = workSplitMode === 'hourly'
     ? `based on hours logged (Malachi: ${malachiHours ?? 0}hrs, Daniel: ${danielHours ?? 0}hrs)`
     : `based on a ${r.mPct}/${r.dPct} percentage split`;
-  parts.push(`The remaining ${fmt(r.workPool)} work pool was divided ${workBasis}, giving Malachi ${fmt(r.malachiWorkPayout)} and Daniel ${fmt(r.danielWorkPayout)}.`);
+  parts.push(`The remaining ${fmt(r.workPool)} (${workPct}% work pool) was divided ${workBasis}, giving Malachi ${fmt(r.malachiWorkPayout)} and Daniel ${fmt(r.danielWorkPayout)}.`);
   parts.push(`Malachi's total: ${fmt(r.malachiTotalPayout)}. Daniel's total: ${fmt(r.danielTotalPayout)}. Business retained: ${fmt(r.businessTotalRetained)}.`);
   return parts.join(' ');
 }

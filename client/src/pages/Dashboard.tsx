@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, TrendingUp, TrendingDown, Plus, Target } from 'lucide-react';
+import { ArrowRight, TrendingUp, TrendingDown, Plus, Target, Receipt, BarChart2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageWrapper } from '../components/layout/PageWrapper';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -124,20 +124,40 @@ export const Dashboard: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* ── This Month + Retained ─────────────── */}
-      <div className="grid grid-cols-2 gap-5 mb-12">
-        <div className="rounded-card border-[3px] border-[#18130e] bg-white shadow-card p-6">
+      {/* ── Stats Grid ────────────────────────── */}
+      <div className="grid grid-cols-2 gap-5 mb-8">
+        <div className="rounded-card border-[3px] border-[#18130e] bg-[var(--bg-base)] shadow-card p-6">
           <p className="section-label mb-3">This Month</p>
           <BigMoney value={thisMonth} className="text-4xl" />
           <div className={`flex items-center gap-1.5 mt-3 text-sm font-semibold ${up ? 'text-[var(--green)]' : 'text-[var(--red)]'}`}>
             {up ? <TrendingUp size={15} /> : <TrendingDown size={15} />}
-            {up ? '+' : ''}{stats?.monthChangePercent?.toFixed(1) ?? 0}% compared to last month
+            {up ? '+' : ''}{stats?.monthChangePercent?.toFixed(1) ?? 0}% vs last month
           </div>
         </div>
-        <div className="rounded-card border-[3px] border-[#18130e] bg-white shadow-card p-6">
+        <div className="rounded-card border-[3px] border-[#18130e] bg-[var(--bg-base)] shadow-card p-6">
           <p className="section-label mb-3">Business Retained</p>
           <BigMoney value={retained} className="text-4xl" />
-          <p className="text-sm text-[var(--text-secondary)] font-medium mt-3">sitting in the profit reserve</p>
+          <p className="text-sm text-[var(--text-secondary)] font-medium mt-3">in the profit reserve</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-5 mb-12">
+        <div className="rounded-card border-[3px] border-[#18130e] bg-[var(--bg-base)] shadow-card p-6 flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-elevated)', border: '2px solid var(--border-strong)' }}>
+            <Receipt size={18} className="text-[var(--accent-orange)]" />
+          </div>
+          <div>
+            <p className="section-label mb-1">Total Payments</p>
+            <p className="font-mono font-bold text-3xl text-[var(--text-primary)]">{stats?.totalTransactions ?? 0}</p>
+          </div>
+        </div>
+        <div className="rounded-card border-[3px] border-[#18130e] bg-[var(--bg-base)] shadow-card p-6 flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-elevated)', border: '2px solid var(--border-strong)' }}>
+            <BarChart2 size={18} className="text-[var(--accent-orange)]" />
+          </div>
+          <div>
+            <p className="section-label mb-1">Avg Deal Size</p>
+            <BigMoney value={stats?.avgDealSize ?? 0} className="text-3xl" />
+          </div>
         </div>
       </div>
 
@@ -159,7 +179,7 @@ export const Dashboard: React.FC = () => {
               mgmt: equity?.daniel_client_management ?? 0,
             },
           ].map(p => (
-            <div key={p.name} className="rounded-card border-[3px] border-[#18130e] bg-white shadow-card p-6">
+            <div key={p.name} className="rounded-card border-[3px] border-[#18130e] bg-[var(--bg-base)] shadow-card p-6">
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-3 h-3 rounded-full" style={{ background: p.color }} />
                 <p className="font-bold text-[var(--text-primary)] text-lg">{p.name}</p>
@@ -215,7 +235,7 @@ export const Dashboard: React.FC = () => {
       {/* ── Revenue Chart ─────────────────────── */}
       <div className="mb-12">
         <h2 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-6">Revenue Over Time</h2>
-        <div className="rounded-card border-[3px] border-[#18130e] bg-white shadow-card p-6">
+        <div className="rounded-card border-[3px] border-[#18130e] bg-[var(--bg-base)] shadow-card p-6">
           <MonthlyRevenueBar data={monthly ?? []} height={280} />
         </div>
       </div>

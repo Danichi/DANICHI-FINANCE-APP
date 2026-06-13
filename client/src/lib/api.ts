@@ -179,8 +179,11 @@ export function useDashboardStats() {
     queryFn: () => apiFetch<{
       totalRevenue: number;
       totalBusinessRetained: number;
+      totalTransactions: number;
+      avgDealSize: number;
       thisMonthRevenue: number;
       lastMonthRevenue: number;
+      thisMonthTransactions: number;
       monthChangePercent: number;
     }>('/analytics/dashboard'),
     staleTime: 30000,

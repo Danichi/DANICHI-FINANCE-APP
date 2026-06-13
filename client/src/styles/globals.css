@@ -27,6 +27,26 @@
   --sidebar-width: 220px;
 }
 
+/* ─── Dark Mode ──────────────────────────────────────────────────────────── */
+.dark {
+  --bg-base: #111008;
+  --bg-surface: #1a1610;
+  --bg-elevated: #2a1e12;
+  --bg-subtle: #201810;
+  --border-default: #3a2e20;
+  --border-strong: #f07830;
+  --text-primary: #f0e8df;
+  --text-secondary: #b09880;
+  --text-tertiary: #7a6850;
+  --accent-orange-dim: #3a1e08;
+  --accent-orange-glow: rgba(240, 120, 48, 0.2);
+  --green-dim: #0a1f0f;
+  --red-dim: #1f0a0a;
+
+  --card-shadow: 6px 6px 0 #f07830;
+  --card-shadow-hover: 8px 8px 0 #f07830;
+}
+
 /* ─── Base Reset ─────────────────────────────────────────────────────────── */
 *,
 *::before,
@@ -60,8 +80,8 @@ body {
 
 /* ─── Danichi Card Style ─────────────────────────────────────────────────── */
 .dc-card {
-  background: #ffffff;
-  border: 3px solid #18130e;
+  background: var(--bg-base);
+  border: 3px solid var(--border-strong);
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -151,8 +171,8 @@ body {
 
 /* ─── Nav Card ───────────────────────────────────────────────────────────── */
 .nav-card {
-  background: #ffffff;
-  border: 3px solid #18130e;
+  background: var(--bg-base);
+  border: 3px solid var(--border-strong);
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
   padding: 24px;

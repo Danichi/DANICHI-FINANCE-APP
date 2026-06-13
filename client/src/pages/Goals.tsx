@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Target, Plus, Check, Clock, Archive } from 'lucide-react';
+import { useSettings } from '../lib/api';
 import { motion } from 'framer-motion';
 import { PageWrapper } from '../components/layout/PageWrapper';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -119,9 +120,13 @@ export const Goals: React.FC = () => {
     periodStart: new Date().toISOString().slice(0, 10),
     periodEnd: '', description: '',
   });
-  const { data: goals } = useGoals();
+  const { data: goals, isLoading } = useGoals();
+  const { data: settings } = useSettings();
   const { mutateAsync: createGoal, isPending } = useCreateGoal();
   const { toast } = useToast();
+
+  const p1 = settings?.malachiName || 'Malachi';
+  const p2 = settings?.danielName || 'Daniel';
 
   const active = goals?.filter(g => g.status === 'active') ?? [];
   const done = goals?.filter(g => g.status !== 'active') ?? [];
@@ -152,19 +157,25 @@ export const Goals: React.FC = () => {
         </button>
       </div>
 
-      {goals?.length === 0 ? (
-        <div className="rounded-card border-[3px] border-[#18130e] bg-white shadow-card p-16 text-center">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--bg-elevated)', border: '2px solid #18130e' }}>
+      {isLoading ? (
+        <div className="flex flex-col gap-5">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="rounded-card border-[3px] border-[var(--border-default)] bg-[var(--bg-surface)] h-48 animate-pulse" />
+          ))}
+        </div>
+      ) : goals?.length === 0 ? (
+        <div className="rounded-card border-[3px] border-[#18130e] bg-[var(--bg-base)] shadow-card p-16 text-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--bg-elevated)', border: '2px solid var(--border-strong)' }}>
             <Target size={24} className="text-[var(--accent-orange)]" />
           </div>
           <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Set your first goal</h2>
           <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-sm mx-auto">
-            Goals help you and Malachi stay motivated and track your progress toward revenue milestones.
+            Goals help you and {p1} stay motivated and track your progress toward revenue milestones.
           </p>
           <button
             onClick={() => setShowAdd(true)}
             className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white rounded-pill hover:-translate-x-px hover:-translate-y-px transition-all"
-            style={{ background: 'var(--accent-orange)', border: '2px solid #18130e', boxShadow: '3px 3px 0 #18130e' }}
+            style={{ background: 'var(--accent-orange)', border: '2px solid var(--border-strong)', boxShadow: '3px 3px 0 var(--border-strong)' }}
           >
             <Plus size={14} /> Create First Goal
           </button>
@@ -207,8 +218,8 @@ export const Goals: React.FC = () => {
             >
               <option value="monthly_revenue">Monthly Revenue</option>
               <option value="quarterly_revenue">Quarterly Revenue</option>
-              <option value="malachi_earnings">Malachi Earnings</option>
-              <option value="daniel_earnings">Daniel Earnings</option>
+              <option value="malachi_earnings">{p1} Earnings</option>
+              <option value="daniel_earnings">{p2} Earnings</option>
               <option value="custom">Custom</option>
             </select>
           </div>

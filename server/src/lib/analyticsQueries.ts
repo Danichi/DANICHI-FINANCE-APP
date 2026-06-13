@@ -129,7 +129,9 @@ export function getDashboardStats() {
   const row = sqlite.prepare(`
     SELECT
       SUM(gross_amount) as total_revenue,
-      SUM(business_total_retained) as total_business_retained
+      SUM(business_total_retained) as total_business_retained,
+      COUNT(*) as total_transactions,
+      AVG(gross_amount) as avg_deal_size
     FROM transactions
   `).get() as any;
 
@@ -137,7 +139,7 @@ export function getDashboardStats() {
   const lastMonth = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().slice(0, 7);
 
   const thisMonthRow = sqlite.prepare(`
-    SELECT SUM(gross_amount) as revenue FROM transactions
+    SELECT SUM(gross_amount) as revenue, COUNT(*) as count FROM transactions
     WHERE strftime('%Y-%m', payment_date) = ?
   `).get(currentMonth) as any;
 
@@ -154,8 +156,11 @@ export function getDashboardStats() {
   return {
     totalRevenue: row?.total_revenue ?? 0,
     totalBusinessRetained: row?.total_business_retained ?? 0,
+    totalTransactions: row?.total_transactions ?? 0,
+    avgDealSize: Math.round((row?.avg_deal_size ?? 0) * 100) / 100,
     thisMonthRevenue,
     lastMonthRevenue,
+    thisMonthTransactions: thisMonthRow?.count ?? 0,
     monthChangePercent: Math.round(monthChange * 10) / 10,
   };
 }

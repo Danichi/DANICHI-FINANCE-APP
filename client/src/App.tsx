@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 import { TopNav } from './components/layout/TopNav';
 import { ToastProvider } from './components/ui/Toast';
+import { DarkModeProvider } from './lib/darkMode';
 
 import { Dashboard } from './pages/Dashboard';
 import { Transactions } from './pages/Transactions';
@@ -49,18 +50,20 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => (
-  <QueryClientProvider client={queryClient}>
-    <ToastProvider>
-      <BrowserRouter>
-        <div className="min-h-screen bg-[var(--bg-base)]">
-          <TopNav />
-          <main className="max-w-6xl mx-auto px-6 py-10">
-            <AppRoutes />
-          </main>
-        </div>
-      </BrowserRouter>
-    </ToastProvider>
-  </QueryClientProvider>
+  <DarkModeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <BrowserRouter>
+          <div className="min-h-screen bg-[var(--bg-base)]">
+            <TopNav />
+            <main className="max-w-6xl mx-auto px-6 py-10">
+              <AppRoutes />
+            </main>
+          </div>
+        </BrowserRouter>
+      </ToastProvider>
+    </QueryClientProvider>
+  </DarkModeProvider>
 );
 
 export default App;

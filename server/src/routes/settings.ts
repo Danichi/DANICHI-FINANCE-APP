@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { randomUUID } from 'crypto';
 import { sqlite } from '../db/database';
 
 const router = Router();
@@ -29,7 +30,6 @@ router.get('/presets', (_req, res) => {
 
 router.post('/presets', (req, res) => {
   const { id, name, clientManager, salesCommission, workSplitMode, malachiPercentage, danielPercentage } = req.body;
-  const { randomUUID } = require('crypto');
   const presetId = id || randomUUID();
   sqlite.prepare(`INSERT OR REPLACE INTO role_presets (id, name, client_manager, sales_commission, work_split_mode, malachi_percentage, daniel_percentage) VALUES (?, ?, ?, ?, ?, ?, ?)`)
     .run(presetId, name, clientManager, salesCommission, workSplitMode, malachiPercentage ?? null, danielPercentage ?? null);

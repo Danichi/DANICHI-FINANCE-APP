@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { db, sqlite } from '../db/database';
 import { transactions, clients } from '../db/schema';
 import { calculateSplit } from '../lib/splitEngine';
@@ -6,6 +7,40 @@ import { eq, desc, asc, and, gte, lte, like } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 const router = Router();
+
+const createTransactionSchema = z.object({
+  clientName: z.string().min(1, 'Client name is required').max(200),
+  projectDescription: z.string().max(500).optional(),
+  grossAmount: z.number().positive('Amount must be positive').max(10_000_000),
+  paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+  expenseDeduction: z.number().min(0).optional().default(0),
+  clientManagerAssignment: z.enum(['malachi', 'daniel', 'split']),
+  salesCommissionAssignment: z.enum(['malachi', 'daniel', 'split']),
+  workSplitMode: z.enum(['percentage', 'hourly']),
+  malachiWorkPercentage: z.number().min(0).max(100).optional(),
+  danielWorkPercentage: z.number().min(0).max(100).optional(),
+  malachiHours: z.number().min(0).optional(),
+  danielHours: z.number().min(0).optional(),
+});
+
+const updateTransactionSchema = z.object({
+  clientName: z.string().min(1).max(200).optional(),
+  projectDescription: z.string().max(500).nullable().optional(),
+  paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+function getSplitRatios() {
+  const rows = sqlite.prepare(
+    `SELECT key, value FROM settings WHERE key IN ('businessReservePct','clientMgmtPct','salesCommissionPct')`
+  ).all() as { key: string; value: string }[];
+  const map: Record<string, string> = {};
+  rows.forEach(r => { map[r.key] = r.value; });
+  return {
+    businessReservePct: map.businessReservePct ? parseFloat(map.businessReservePct) : 10,
+    clientMgmtPct: map.clientMgmtPct ? parseFloat(map.clientMgmtPct) : 10,
+    salesCommissionPct: map.salesCommissionPct ? parseFloat(map.salesCommissionPct) : 20,
+  };
+}
 
 router.get('/', (req, res) => {
   const { dateFrom, dateTo, client, sort = 'newest', page = '1', limit = '20' } = req.query as Record<string, string>;
@@ -46,24 +81,27 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { clientName, projectDescription, grossAmount, paymentDate, expenseDeduction = 0,
-    clientManagerAssignment, salesCommissionAssignment, workSplitMode,
-    malachiWorkPercentage, danielWorkPercentage, malachiHours, danielHours } = req.body;
-
-  if (!clientName || !grossAmount || !paymentDate || !clientManagerAssignment || !salesCommissionAssignment || !workSplitMode) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  const parsed = createTransactionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
   }
 
+  const { clientName, projectDescription, grossAmount, paymentDate, expenseDeduction,
+    clientManagerAssignment, salesCommissionAssignment, workSplitMode,
+    malachiWorkPercentage, danielWorkPercentage, malachiHours, danielHours } = parsed.data;
+
+  const ratios = getSplitRatios();
   const result = calculateSplit({
-    grossAmount: parseFloat(grossAmount),
-    expenseDeduction: parseFloat(expenseDeduction) || 0,
+    grossAmount,
+    expenseDeduction,
     clientManagerAssignment,
     salesCommissionAssignment,
     workSplitMode,
-    malachiWorkPercentage: malachiWorkPercentage !== undefined ? parseFloat(malachiWorkPercentage) : undefined,
-    danielWorkPercentage: danielWorkPercentage !== undefined ? parseFloat(danielWorkPercentage) : undefined,
-    malachiHours: malachiHours !== undefined ? parseFloat(malachiHours) : undefined,
-    danielHours: danielHours !== undefined ? parseFloat(danielHours) : undefined,
+    malachiWorkPercentage,
+    danielWorkPercentage,
+    malachiHours,
+    danielHours,
+    ratios,
   });
 
   const id = randomUUID();
@@ -78,17 +116,15 @@ router.post('/', (req, res) => {
       malachi_work_payout, daniel_work_payout, malachi_total_payout, daniel_total_payout,
       business_total_retained, explanation)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, now, now, clientName, projectDescription || null, result.grossAmount, paymentDate,
+  `).run(id, now, now, clientName, projectDescription ?? null, result.grossAmount, paymentDate,
     result.expenseDeduction, result.netAmount, clientManagerAssignment, salesCommissionAssignment, workSplitMode,
     result.malachiWorkPercentage, result.danielWorkPercentage,
-    malachiHours !== undefined ? parseFloat(malachiHours) : null,
-    danielHours !== undefined ? parseFloat(danielHours) : null,
+    malachiHours ?? null, danielHours ?? null,
     result.businessProfitReserve, result.clientManagementFee, result.clientManagementToMalachi,
     result.clientManagementToDaniel, result.salesCommission, result.salesCommissionToMalachi,
     result.salesCommissionToDaniel, result.workPool, result.malachiWorkPayout, result.danielWorkPayout,
     result.malachiTotalPayout, result.danielTotalPayout, result.businessTotalRetained, result.explanation);
 
-  // Upsert client
   sqlite.prepare(`INSERT OR IGNORE INTO clients (id, name, created_at) VALUES (?, ?, ?)`).run(randomUUID(), clientName, now);
 
   const saved = sqlite.prepare(`SELECT * FROM transactions WHERE id = ?`).get(id) as any;
@@ -99,10 +135,16 @@ router.put('/:id', (req, res) => {
   const tx = sqlite.prepare(`SELECT * FROM transactions WHERE id = ?`).get(req.params.id) as any;
   if (!tx) return res.status(404).json({ error: 'Transaction not found' });
 
-  const { clientName, projectDescription, paymentDate } = req.body;
+  const parsed = updateTransactionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
+  }
+
+  const { clientName, projectDescription, paymentDate } = parsed.data;
   const now = new Date().toISOString();
   sqlite.prepare(`UPDATE transactions SET client_name = ?, project_description = ?, payment_date = ?, updated_at = ? WHERE id = ?`)
-    .run(clientName ?? tx.client_name, projectDescription ?? tx.project_description, paymentDate ?? tx.payment_date, now, req.params.id);
+    .run(clientName ?? tx.client_name, projectDescription !== undefined ? projectDescription : tx.project_description,
+      paymentDate ?? tx.payment_date, now, req.params.id);
 
   res.json(mapTx(sqlite.prepare(`SELECT * FROM transactions WHERE id = ?`).get(req.params.id) as any));
 });
