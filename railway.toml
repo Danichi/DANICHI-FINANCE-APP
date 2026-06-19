@@ -1,0 +1,9 @@
+[build]
+buildCommand = "cd client && npm install && npm run build && cd ../server && npm install"
+
+[deploy]
+startCommand = "cd server && NODE_ENV=production npx tsx src/index.ts"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
