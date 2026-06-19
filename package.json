@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:worker\"",
     "dev:client": "cd client && npm run dev",
+    "dev:worker": "cd worker && npm run dev",
     "dev:server": "cd server && npm run dev",
+    "build:client": "cd client && npm install && npm run build",
     "build": "cd client && npm install && npm run build",
+    "worker:deploy": "cd worker && npm run deploy",
+    "worker:db:create": "cd worker && npm run db:create",
+    "worker:db:migrate": "cd worker && npm run db:migrate:remote",
     "seed": "cd server && npm run seed"
   },
   "devDependencies": {
